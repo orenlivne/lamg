@@ -18,7 +18,7 @@ PI = np.pi
 
 def harmonics((t1, t2)):
     '''Return the vector of harmonics of the scaled frequency (t1,t2).'''
-    return ((t1, t2), (t1 + PI, t2))
+    return ((t1, t2), (t1 + PI, t2), (t1, t2 + PI), (t1 + PI, t2 + PI))
 
 def apply_to_harmonics(f, t):
     '''Apply f element-wise to the list of harmonics of the scaled frequency t.'''
@@ -38,7 +38,7 @@ def a((t1, t2)):
 
 def r((t1, t2)):
     '''Linear full-weighting symbol into a semi-coarsening in x.'''
-    return 0.5 * (1 + np.cos(t1))
+    return 0.25 * (1 + np.cos(t1)) * (1 + np.cos(t2))
     # return 0.5 * (1 + np.exp(I * t1)); # First-order interpolation
     
 def R(t):
@@ -59,7 +59,7 @@ def Ac(t):
 
 def M(t, nu):
     '''Two-level method''s symbol with nu pre-relaxations per cycle.'''
-    return (np.eye(2) - P(t) * inv(Ac(t)) * R(t) * A(t)) * matrix_power(S(t), nu) 
+    return (np.eye(sum(1 for _ in harmonics(t))) - P(t) * inv(Ac(t)) * R(t) * A(t)) * matrix_power(S(t), nu) 
 
 def mu(t, nu):
     '''Asymptotic Amplification factor of frequency t in the two-level Cycle(0,3).'''
