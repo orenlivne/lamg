@@ -1,0 +1,4 @@
+lamg
+====
+
+Lean Algebraic Multigrid
