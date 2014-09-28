@@ -151,7 +151,7 @@ if __name__ == '__main__':
 #     s = pstats.Stats('lma_run')
 #     s.strip_dirs().sort_stats('cumulative').print_stats()
 
-    diffusion_coef = [4, 1]  # [1,1]
+    diffusion_coef = [1, .25]  # [4, 1]  # [1,1]
     for interpolation, coarse_operator in it.product(['constant', 'linear'], ['galerkin', 'direct']):
     # lma = LocalModeAnalyzer(Grid2dXSemiCoarsening(coarse_operator='galerkin', interpolation='linear'))
     # lma = LocalModeAnalyzer(Grid2dXSemiCoarsening(coarse_operator='galerkin', interpolation='constant'))
