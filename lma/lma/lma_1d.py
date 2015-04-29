@@ -1,7 +1,7 @@
 '''
 ============================================================
 Local mode analysis of a two-level method for the isotropic
-2D Laplacian on the unit square with periodic BC.
+1D Laplacian on the unit square with periodic BC.
 Gauss-Seidel relaxation (lexicographic ordering),
 semi-coarsening in the x-direction, constant/linear
 interpolation and Galerkin/direct discretization coarse
@@ -24,8 +24,7 @@ PI = np.pi
 '''Cycle ingredients for semi-coarsening in the x-direction of the 2-D anisotropic Laplacian
 operator a*uxx + c*uyy.'''
 class Grid2dXSemiCoarsening(object):
-    def __init__(self, diffusion_coef=[1, 1], interpolation='linear', coarse_operator='galerkin'):
-        self.diffusion_coef = diffusion_coef
+    def __init__(self, interpolation='linear', coarse_operator='galerkin'):
         self.coarse_operator = coarse_operator
         
         if interpolation == 'constant':
@@ -42,35 +41,31 @@ class Grid2dXSemiCoarsening(object):
         else:
             raise ValueError('Unsupported coarse operator type ''%s''' % (coarse_operator,))
         
-    def harmonics(self, (t1, t2)):
-        '''Return the vector of harmonics of the scaled frequency (t1,t2).'''
-        return ((t1, t2), (t1 + PI, t2))
+    def harmonics(self, t):
+        '''Return the vector of harmonics of the scaled frequency t.'''
+        return (t, t + PI)
         
-    def s(self, (t1, t2)):
+    def s(self, t):
         '''Gauss-Seidel relaxation symbol, lexicographic ordering.'''
-        return (np.exp(I * t1) + np.exp(I * t2)) / (4 - np.exp(-I * t1) - np.exp(-I * t2))
+        return np.exp(I * t) / (2 - np.exp(-I * t))
     
-    def a(self, (t1, t2)):
+    def a(self, t):
         '''Symbol of the fine-level operator h^2*A^h(t).'''
-        return \
-            self.diffusion_coef[0] * 2 * (1 - np.cos(t1)) + \
-            self.diffusion_coef[1] * 2 * (1 - np.cos(t2))
+        return 2 * (1 - np.cos(t))
     
-    def r1(self, (t1, t2)):
+    def r1(self, t):
         '''Linear full-weighting symbol into a semi-coarsening in x.'''
-        # return 0.5 * (1 + np.cos(t1))
-        return 0.5 * (1 + np.exp(-I * t1))  # transpose of first-order interpolation
+        # return 0.5 * (1 + np.cos(t))
+        return 0.5 * (1 + np.exp(-I * t))  # transpose of first-order interpolation
     
-    def r2(self, (t1, t2)):
+    def r2(self, t):
         '''Linear full-weighting symbol into a semi-coarsening in x.'''
-        return 0.5 * (1 + np.cos(t1))
-        # return 0.5 * (1 + np.exp(-I * t1))  # transpose of first-order interpolation
+        return 0.5 * (1 + np.cos(t))
+        # return 0.5 * (1 + np.exp(-I * t))  # transpose of first-order interpolation
     
-    def ac_fd_5point(self, (t1, t2)):
+    def ac_fd_5point(self, t):
         '''Symbol of direct FD discretization on the coarse grid.'''
-        return np.matrix(\
-            self.diffusion_coef[0] * 0.5 * (1 - np.cos(2 * t1)) + \
-            self.diffusion_coef[1] * 2 * (1 - np.cos(t2)))
+        return np.matrix(0.5 * (1 - np.cos(2 * t)))
 
 '''A generic local mode analysis runner. Accepts the two-level cycle's building blocks and
 calculates its convergence factor.'''
@@ -135,12 +130,11 @@ class LocalModeAnalyzer(object):
 #         print 'M'
 #         print self.M(t, nu)
 #         print 'mu', self.mu(t, nu)
-#         for t1 in np.linspace(-PI + LocalModeAnalyzer.eps, PI + LocalModeAnalyzer.eps, n + 1):
+#         for t in np.linspace(-PI + LocalModeAnalyzer.eps, PI + LocalModeAnalyzer.eps, n + 1):
 #             for t2 in np.linspace(-PI + LocalModeAnalyzer.eps, PI + LocalModeAnalyzer.eps, n + 1):
-#                 print t1, t2, self.mu((t1, t2), nu)
-        return max(self.mu((t1, t2), nu) 
-                   for t1 in np.linspace(-PI + LocalModeAnalyzer.eps, PI + LocalModeAnalyzer.eps, n + 1)
-                   for t2 in np.linspace(-PI + LocalModeAnalyzer.eps, PI + LocalModeAnalyzer.eps, n + 1))
+#                 print t, t2, self.mu(t, nu)
+        return max(self.mu(t, nu)
+                   for t in np.linspace(-PI + LocalModeAnalyzer.eps, PI + LocalModeAnalyzer.eps, n + 1))
 
 if __name__ == '__main__':
     # Profile the slow part of the LMA run.
@@ -151,12 +145,11 @@ if __name__ == '__main__':
 #     s = pstats.Stats('lma_run')
 #     s.strip_dirs().sort_stats('cumulative').print_stats()
 
-    diffusion_coef = [1, .25]  # [4, 1]  # [1,1]
     for interpolation, coarse_operator in it.product(['constant', 'linear'], ['galerkin', 'direct']):
     # lma = LocalModeAnalyzer(Grid2dXSemiCoarsening(coarse_operator='galerkin', interpolation='linear'))
     # lma = LocalModeAnalyzer(Grid2dXSemiCoarsening(coarse_operator='galerkin', interpolation='constant'))
     # lma = LocalModeAnalyzer(Grid2dXSemiCoarsening(coarse_operator='direct', interpolation='constant'))
         print 'interpolation', interpolation, 'coarse_operator', coarse_operator
-        lma = LocalModeAnalyzer(Grid2dXSemiCoarsening(diffusion_coef=diffusion_coef, coarse_operator=coarse_operator, interpolation=interpolation))
+        lma = LocalModeAnalyzer(Grid2dXSemiCoarsening(coarse_operator=coarse_operator, interpolation=interpolation))
         for nu in xrange(1, 6):  # [3]:  # xrange(1, 5):
-            print 'nu = %d, ACF = %.3f' % (nu, lma.acf(nu, n=64))
+            print 'nu = %d, ACF = %.3f' % (nu, lma.acf(nu, n=128))
